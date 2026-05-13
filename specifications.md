@@ -56,124 +56,245 @@
 ```
 ---
 
-## 2. Исходная КС-грамматика языка
+# 2. КС-грамматика языка (Исходная)
 
-Грамматика $G = \langle \Sigma, N, S, P \rangle$.
+Грамматика определяется четверкой $G = (N, \Sigma, P, S)$, где:
+
+- $\Sigma$ — множество терминалов (лексем), определенных в п. 1.1.
+- $N$ — множество нетерминалов (грамматических понятий).
+- $P$ — множество правил порождения (продукций).
+- $S$ — начальный нетерминал грамматики ($S = \text{Program}$).
+
+### Список нетерминалов ($N$)
+`{Program, StatementList, Statement, Assignment, IfStmt, WhileStmt, ReadStmt, WriteStmt, CompoundStmt, Expression, Comparison, Addition, Multiplication, Unary, Primary, ArrayIndex, CompOp}`
+
+### Правила порождения ($P$)
 
 ```math
 \begin{aligned}
-\text{Program} & \to \text{StatementList} \\
-\text{StatementList} & \to \text{Statement StatementList} \mid \epsilon \\
-\text{Statement} & \to \text{Assignment} \mid \text{IfStmt} \mid \text{WhileStmt} \mid \text{ReadStmt} \mid \text{WriteStmt} \mid \text{CompoundStmt} \\
-\text{Assignment} & \to \text{L\_ID [ Expression ] := Expression ;} \mid \text{L\_ID := Expression ;} \\
-\text{IfStmt} & \to \text{if Expression then Statement else Statement} \mid \text{if Expression then Statement} \\
-\text{WhileStmt} & \to \text{while Expression do Statement} \\
-\text{ReadStmt} & \to \text{read L\_ID [ Expression ] ;} \mid \text{read L\_ID ;} \\
-\text{WriteStmt} & \to \text{write Expression ;} \\
-\text{CompoundStmt} & \to \text{begin StatementList end} \\
-\text{Expression} & \to \text{Term } \{ (+ \mid - \mid \text{L\_CMP}) \text{ Term } \} \\
-\text{Term} & \to \text{Factor } \{ (* \mid /) \text{ Factor } \} \\
-\text{Factor} & \to \text{( Expression )} \mid \text{L\_ID [ Expression ]} \mid \text{L\_ID} \mid \text{L\_NUM\_INT} \mid \text{L\_NUM\_REAL} \mid \text{- Factor}
+\text{Program}      &\to \text{StatementList} \\
+\text{StatementList} &\to \text{Statement StatementList} \mid \epsilon \\
+\\
+\text{Statement}    &\to \text{Assignment} \\
+                    &\mid \text{IfStmt} \\
+                    &\mid \text{WhileStmt} \\
+                    &\mid \text{ReadStmt} \\
+                    &\mid \text{WriteStmt} \\
+                    &\mid \text{CompoundStmt} \\
+\\
+\text{Assignment}   &\to \text{L\_ID ArrayIndex L\_ASSIGN Expression L\_SEMICOLON} \\
+                    &\mid \text{L\_ID L\_ASSIGN Expression L\_SEMICOLON} \\
+\\
+\text{IfStmt}       &\to \text{L\_IF Expression L\_THEN Statement L\_ELSE Statement} \\
+                    &\mid \text{L\_IF Expression L\_THEN Statement} \\
+\\
+\text{WhileStmt}    &\to \text{L\_WHILE Expression L\_DO Statement} \\
+\\
+\text{ReadStmt}     &\to \text{L\_READ L\_ID ArrayIndex L\_SEMICOLON} \\
+                    &\mid \text{L\_READ L\_ID L\_SEMICOLON} \\
+\\
+\text{WriteStmt}    &\to \text{L\_WRITE Expression L\_SEMICOLON} \\
+\\
+\text{CompoundStmt} &\to \text{L\_BEGIN StatementList L\_END} \\
+\\
+\text{Expression}   &\to \text{Comparison} \\
+\\
+\text{Comparison}   &\to \text{Addition CompOp Addition} \mid \text{Addition} \\
+\text{CompOp}       &\to \text{L\_CMP} \\
+\\
+\text{Addition}     &\to \text{Addition L\_PLUS Multiplication} \\
+                    &\mid \text{Addition L\_MINUS Multiplication} \\
+                    &\mid \text{Multiplication} \\
+\\
+\text{Multiplication} &\to \text{Multiplication L\_MUL Unary} \\
+                    &\mid \text{Multiplication L\_DIV Unary} \\
+                    &\mid \text{Unary} \\
+\\
+\text{Unary}        &\to \text{L\_MINUS Unary} \mid \text{Primary} \\
+\\
+\text{Primary}      &\to \text{L\_NUM\_INT} \\
+                    &\mid \text{L\_NUM\_REAL} \\
+                    &\mid \text{L\_ID ArrayIndex} \\
+                    &\mid \text{L\_ID} \\
+                    &\mid \text{L\_LPAR Expression L\_RPAR} \\
+\\
+\text{ArrayIndex}   &\to \text{L\_LBRACK Expression L\_RBRACK} \\
 \end{aligned}
 ```
 ---
 
-## 3. КС-грамматика в нестрогой форме Грейбах
+# 3. КС-грамматика в нестрогой нормальной форме Грейбах (НФГ)
 
-Преобразована для табличного LL(1)-анализатора (устранена левая рекурсия):
+Для реализации нисходящего синтаксического анализатора (магазинного автомата) грамматика преобразована таким образом, чтобы каждое правило начиналось с терминала (лексемы) либо было пустым. Левая рекурсия устранена путем введения дополнительных нетерминалов — «хвостов» (Tail).
+
+### 1. Список операторов (Главный нетерминал S)
 
 ```math
 \begin{aligned}
-S & \to \text{read L\_ID ArrayAccess ; } S \\
-S & \to \text{write E ; } S \\
-S & \to \text{if E then S ElsePart S} \\
-S & \to \text{while E do S S} \\
-S & \to \text{begin SL end S} \\
-S & \to \text{L\_ID ID\_Op S} \\
-S & \to \epsilon \\
-\text{ID\_Op} & \to \text{ArrayAccess := E ;} \mid \text{ := E ;} \\
-\text{ElsePart} & \to \text{else S} \mid \epsilon \\
-SL & \to \text{Statement StatementList} \\
-E & \to \text{T E\_Tail} \\
-\text{E\_Tail} & \to \text{L\_PLUS T E\_Tail} \mid \text{L\_MINUS T E\_Tail} \mid \text{L\_CMP T E\_Tail} \mid \epsilon \\
-T & \to \text{F T\_Tail} \\
-\text{T\_Tail} & \to \text{L\_MUL F T\_Tail} \mid \text{L\_DIV F T\_Tail} \mid \epsilon \\
-F & \to \text{L\_LPAR E L\_RPAR} \mid \text{L\_MINUS F} \mid \text{L\_NUM\_INT} \mid \text{L\_NUM\_REAL} \mid \text{L\_ID F\_ID\_Tail} \\
-\text{F\_ID\_Tail} & \to \text{L\_LBRACK E L\_RBRACK} \mid \epsilon \\
-\text{ArrayAccess} & \to \text{L\_LBRACK E L\_RBRACK} \mid \epsilon
+S            &\to \text{L\_ID ID\_Tail S} \\
+             &\mid \text{L\_IF E L\_THEN S ElsePart S} \\
+             &\mid \text{L\_WHILE E L\_DO S S} \\
+             &\mid \text{L\_READ L\_ID ArrayAccess L\_SEMICOLON S} \\
+             &\mid \text{L\_WRITE E L\_SEMICOLON S} \\
+             &\mid \text{L\_BEGIN SL L\_END S} \\
+             &\mid \epsilon \\
+\\
+\text{ID\_Tail}    &\to \text{L\_LBRACK E L\_RBRACK L\_ASSIGN E L\_SEMICOLON} \\
+             &\mid \text{L\_ASSIGN E L\_SEMICOLON} \\
+\\
+\text{ElsePart}     &\to \text{L\_ELSE S} \mid \epsilon \\
+\\
+\text{SL}           &\to \text{S StatementList} \\
+\end{aligned}
+```
+### 2. Выражения (E)
+
+```math
+\begin{aligned}
+E            &\to \text{T E\_Tail} \\
+\\
+\text{E\_Tail}       &\to \text{L\_PLUS T E\_Tail} \\
+             &\mid \text{L\_MINUS T E\_Tail} \\
+             &\mid \text{CompTail} \\
+             &\mid \epsilon \\
+\\
+\text{CompTail}     &\to \text{L\_CMP T CompTail} \\
+             &\mid \epsilon \\
+\end{aligned}
+```
+### 3. Мультипликативные операции (T)
+
+```math
+\begin{aligned}
+T            &\to \text{F T\_Tail} \\
+\\
+\text{T\_Tail}       &\to \text{L\_MUL F T\_Tail} \\
+             &\mid \text{L\_DIV F T\_Tail} \\
+             &\mid \epsilon \\
+\end{aligned}
+```
+### 4. Первичные элементы и унарные операции (F)
+
+```math
+\begin{aligned}
+F            &\to \text{L\_MINUS F} \\
+             &\mid \text{L\_NUM\_INT} \\
+             &\mid \text{L\_NUM\_REAL} \\
+             &\mid \text{L\_ID F\_ID\_Tail} \\
+             &\mid \text{L\_LPAR E L\_RPAR} \\
+\\
+\text{F\_ID\_Tail}    &\to \text{L\_LBRACK E L\_RBRACK} \\
+             &\mid \epsilon \\
+\\
+\text{ArrayAccess}   &\to \text{L\_LBRACK E L\_RBRACK} \mid \epsilon \\
 \end{aligned}
 ```
 ---
 
-## 4. Семантические действия для генерации ОПС
+# 4. Семантические действия для генерации ОПС
 
-Генерация ОПЗ (Обратной Польской Записи) выполняется параллельно с синтаксическим разбором. В таблицу LL(1)-анализатора встроены вызовы семантических программ (SP).
+Процесс генерации Обратной Польской Строки (ОПС) происходит одновременно с синтаксическим анализом. В ячейки таблицы LL(1)-анализатора встраиваются вызовы семантических программ (SP).
 
-### 4.1. Описание семантических программ
+### 4.1. Список семантических программ
 
-| Программа | Момент вызова | Действие |
-| :--- | :--- | :--- |
-| **SP1** | При обработке `L_ID`, `L_INT`, `L_REAL` | Записать операнд (индекс в таблице имен или константу) в выходную строку ОПС. |
-| **SP2** | После завершения разбора `T` в `E_Tail` | Записать код бинарной операции (`+`, `-` или `CMP`) в ОПС. |
-| **SP3** | После завершения разбора `F` в `T_Tail` | Записать код операции (`*`, `/`) в ОПС. |
-| **SP4** | В правиле `F -> L_MINUS F` | Записать код унарного минуса `NEG` в ОПС. |
-| **SP5** | При разборе `L_RBRACK` (массивы) | Записать операцию `INDEX` для вычисления адреса элемента. |
-| **SP6 (IF)** | Сразу после разбора условия `E` | Сгенерировать в ОПС `M1 JF`. Запомнить позицию `M1` в стеке меток. |
-| **SP7 (IF)** | После завершения ветки `THEN` | Сгенерировать `M2 J`. Записать текущий адрес ОПС в место, зарезервированное под `M1`. |
-| **SP8 (WHILE)** | Перед началом разбора условия `E` | Запомнить в стеке меток текущую позицию ОПС как начало цикла `M_start`. |
-| **SP9 (WHILE)** | После завершения тела цикла | Сгенерировать `M_start J`. Записать текущий адрес ОПС в метку выхода `M_exit`. |
+| Программа | Описание действия |
+| :--- | :--- |
+| **SP_PUSH** | Поместить текущий операнд (индекс переменной в таблице имен или значение константы) в выходную строку ОПС. |
+| **SP_OP** | Записать код текущей операции (`+`, `-`, `*`, `/`, `CMP`) в выходную строку ОПС. |
+| **SP_NEG** | Записать в ОПС код унарного отрицания `NEG`. |
+| **SP_INDEX** | Записать в ОПС код операции `INDEX` (вычисление адреса элемента массива). |
+| **SP_IF_JF** | 1. Создать новую метку `L1`. 2. Записать в ОПС `L1` и операцию `JF`. 3. Положить `L1` в стек меток. |
+| **SP_IF_J** | 1. Создать новую метку `L2`. 2. Записать в ОПС `L2` и операцию `J`. 3. Извлечь `L1` из стека меток, записать текущий адрес ОПС в поле адреса метки `L1`. 4. Положить `L2` в стек меток. |
+| **SP_IF_END** | Извлечь метку из стека меток, записать в неё текущий адрес конца блока. |
+| **SP_W_START**| Запомнить текущую позицию в ОПС как адрес начала цикла `LoopStart`. |
+| **SP_W_JF** | Создать метку `LoopExit`. Записать в ОПС `LoopExit` и `JF`. Положить `LoopExit` в стек меток. |
+| **SP_W_END** | 1. Записать в ОПС `LoopStart` и `J`. 2. Извлечь `LoopExit` и заполнить её текущим адресом ОПС. |
 
+### 4.2. Фрагмент грамматики со встроенными действиями
+
+```math
+\begin{aligned}
+E &\to T \text{ E\_Tail} \\
+\text{E\_Tail} &\to \text{L\_PLUS } T \{ \text{SP\_OP(+)} \} \text{ E\_Tail} \\
+               &\mid \text{L\_MINUS } T \{ \text{SP\_OP(-)} \} \text{ E\_Tail} \\
+               &\mid \epsilon \\
+\\
+\text{IfStmt}  &\to \text{L\_IF } E \{ \text{SP\_IF\_JF} \} \text{ L\_THEN } S \{ \text{SP\_IF\_J} \} \text{ L\_ELSE } S \{ \text{SP\_IF\_END} \} \\
+\end{aligned}
+```
 ---
 
-## 5. Список операций ОПС
+# 5. Список операций ОПС
 
-Ниже приведен полный перечень операций, поддерживаемых интерпретатором, и их влияние на стек операндов.
+Ниже приведена полная спецификация команд промежуточного языка (ОПС), которые обрабатываются интерпретатором.
 
-| Операция | Мнемоника | Аргументы | Эффект на стеке | Описание |
+### 5.1. Арифметические и логические операции
+
+| Код | Мнемоника | Аргументы | Эффект на стеке (до $\to$ после) |
+| :--- | :--- | :--- | :--- |
+| 101 | `ADD` | 2 | $[a, b] \to [a + b]$ |
+| 102 | `SUB` | 2 | $[a, b] \to [a - b]$ |
+| 103 | `MUL` | 2 | $[a, b] \to [a \cdot b]$ |
+| 104 | `DIV` | 2 | $[a, b] \to [a / b]$ (с проверкой на 0) |
+| 105 | `NEG` | 1 | $[a] \to [-a]$ |
+| 106 | `CMP_LT` | 2 | $[a, b] \to [a < b \ ? \ 1 : 0]$ |
+| 107 | `CMP_GT` | 2 | $[a, b] \to [a > b \ ? \ 1 : 0]$ |
+| 108 | `CMP_EQ` | 2 | $[a, b] \to [a = b \ ? \ 1 : 0]$ |
+
+### 5.2. Операции управления памятью и потоком
+
+| Код | Мнемоника | Аргументы | Эффект на стеке | Описание |
 | :--- | :--- | :--- | :--- | :--- |
-| Сложение | `ADD` | 2 | `[a, b] -> [a+b]` | Складывает два числа. |
-| Вычитание | `SUB` | 2 | `[a, b] -> [a-b]` | Вычитает верхнее из предпоследнего. |
-| Умножение | `MUL` | 2 | `[a, b] -> [a*b]` | Умножает два числа. |
-| Деление | `DIV` | 2 | `[a, b] -> [a/b]` | Делит с проверкой на ноль. |
-| Отрицание | `NEG` | 1 | `[a] -> [-a]` | Унарный минус. |
-| Сравнение | `CMP_x` | 2 | `[a, b] -> [0/1]` | Сравнивает `a` и `b` ($<, >, =, \dots$). |
-| Присваивание| `ASSIGN` | 2 | `[val, addr] -> []` | Записывает `val` по адресу `addr`. |
-| Индексация | `INDEX` | 2 | `[idx, base] -> [addr]` | Вычисляет `base + idx`. |
-| Ввод | `READ` | 1 | `[addr] -> []` | Считывает число в `addr`. |
-| Вывод | `WRITE` | 1 | `[val] -> []` | Выводит `val` на экран. |
-| Переход | `J` | 1 (адрес) | — | Безусловный переход по метке. |
-| Усл. переход| `JF` | 2 | `[cond] -> []` | Переход по метке, если `cond == 0`. |
+| 201 | `ASSIGN` | 2 | $[val, addr] \to []$ | Сохранить `val` по адресу `addr`. |
+| 202 | `INDEX` | 2 | $[idx, base] \to [addr]$ | Вычислить адрес `base + idx`. |
+| 203 | `READ` | 1 | $[addr] \to []$ | Считать число с консоли в `addr`. |
+| 204 | `WRITE` | 1 | $[val] \to []$ | Вывести значение `val` на экран. |
+| 301 | `J` | 1 (метка) | $[] \to []$ | Безусловный переход. |
+| 302 | `JF` | 2 (мет, конд)| $[cond] \to []$ | Переход по метке, если `cond = 0`. |
 
 ---
 
-## 6. Формат ОПС и структура интерпретатора
+# 6. Формат ОПС и реализация интерпретатора
 
-### 6.1. Представление ОПС в памяти
+### 6.1. Структура элемента ОПС
 
-ОПС хранится в виде массива структур (объектов) `Step`, где каждый элемент содержит:
-1. **Тип (`Type`):** 
-   - `CONST`: числовая константа.
-   - `VAR_ADDR`: адрес переменной или начала массива.
-   - `OPERATION`: код операции из п. 5.
-   - `LABEL`: индекс элемента в массиве ОПС для команд перехода.
-2. **Значение (`Value`):** Число или индекс.
+Каждый элемент ОПС — это структура (атом), описываемая следующим образом:
 
-### 6.2. Алгоритм работы интерпретатора
+```math
+\text{Item} = 
+\begin{cases} 
+\langle \text{Type: CONST, Value: } n \rangle & \text{Числовая константа} \\
+\langle \text{Type: VAR, Value: } id \rangle & \text{Ссылка на таблицу имен (адрес)} \\
+\langle \text{Type: CMD, Value: } op\_code \rangle & \text{Код операции из раздела 5} \\
+\langle \text{Type: LABEL, Value: } target \rangle & \text{Адрес перехода в ОПС} \\
+\end{cases}
+```
+### 6.2. Алгоритм интерпретации
 
-Интерпретатор работает в цикле по указателю текущей команды `PC` (Program Counter):
+Интерпретатор реализует классическую стек-машину. Процесс выполнения описывается следующим циклом:
 
-1. Получить элемент `OPS[PC]`.
-2. Если это **Операнд** (`CONST` или `VAR_ADDR`):
-   - Положить его значение в стек операндов.
-   - `PC++`.
-3. Если это **Операция**:
-   - Извлечь из стека необходимое количество операндов.
-   - Выполнить действие.
-   - Если операция не является переходом — положить результат в стек (если есть) и `PC++`.
-   - Если операция **переход** (`J` или `JF`) — обновить `PC` значением метки.
-4. Повторять, пока `PC < OPS.length`.
+1. **Инициализация:** `PC = 0` (указатель команд), `Stack = empty`.
+2. **Цикл выполнения:** Пока `PC < OPS.length`:
+    - `current = OPS[PC]`
+    - Если `current.Type` $\in \{ \text{CONST, VAR} \}$:
+        - `Stack.push(current)`
+        - `PC = PC + 1`
+    - Если `current.Type == CMD`:
+        - Если `current.Value == J`: `PC = OPS[PC+1].Value`
+        - Если `current.Value == JF`:
+            - `addr = OPS[PC+1].Value`
+            - `cond = Stack.pop()`
+            - Если `cond == 0`: `PC = addr`
+            - Иначе: `PC = PC + 2`
+        - Иначе (арифметика, ввод/вывод):
+            - Извлечь аргументы из `Stack`.
+            - Выполнить операцию.
+            - Положить результат в `Stack` (если операция возвращает значение).
+            - `PC = PC + 1`
+3. **Завершение:** Если стек пуст и `PC` достиг конца — программа выполнена успешно.
 
-### 6.3. Обработка ошибок выполнения
-- Деление на ноль.
-- Использование неинициализированной переменной.
-- Выход за границы массива (проверка `Index < Size`).
+### 6.3. Таблицы имен и данных
+
+В процессе работы интерпретатор использует две основные таблицы:
+1. **Таблица имен:** хранит строковые имена переменных и их текущие типы/свойства.
+2. **Память (Data Memory):** массив, где по индексам из таблицы имен хранятся реальные значения (целые или вещественные). Для массивов выделяется непрерывный блок ячеек.
