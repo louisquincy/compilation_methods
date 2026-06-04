@@ -111,162 +111,191 @@
 
 ---
 
-## 2. КС-грамматика языка (исходная)
+## 2. Исходная КС-грамматика языка
 
-Грамматика $G = (N, \Sigma, P, S)$, $\Sigma$ – лексемы из п. 1.1, $S = \text{Program}$.
-```math
-\begin{aligned}
-\text{Program}      &\to \text{Declarations StatementList} \\
-\text{Declarations} &\to \text{Declaration Declarations} \mid \varepsilon \\
-\text{Declaration}  &\to \text{int } L\_ID \; ; \mid \text{int1 } L\_ID \; [ L\_NUM\_INT ] \; ; \\
-\text{StatementList} &\to \text{Statement StatementList} \mid \varepsilon \\
-\text{Statement}    &\to \text{Assignment} \mid \text{IfStmt} \mid \text{WhileStmt} \mid \text{ReadStmt} \mid \text{WriteStmt} \mid \text{CompoundStmt} \\
-\text{Assignment}   &\to L\_ID [ \text{Expression} ] := \text{Expression} ; \mid L\_ID := \text{Expression} ; \\
-\text{IfStmt}       &\to \text{if Expression then Statement else Statement} \mid \text{if Expression then Statement} \\
-\text{WhileStmt}    &\to \text{while Expression do Statement} \\
-\text{ReadStmt}     &\to \text{read } L\_ID [ \text{Expression} ] ; \mid \text{read } L\_ID ; \\
-\text{WriteStmt}    &\to \text{write Expression} ; \\
-\text{CompoundStmt} &\to \text{begin StatementList end} \\
-\text{Expression}   &\to \text{[ ( < | > | = | <= | >= ) SimpleExpr ]} \\
-\text{SimpleExpr}   &\to \text{{ ( + | - )}} \\
-\text{Term}         &\to \text{{ ( * | / ) Unary }} \\
-\text{Unary}        &\to - \text{Primary} \mid \text{Primary} \\
-\text{Primary}      &\to L\_NUM\_INT \mid L\_NUM\_REAL \mid L\_ID [ \text{Expression} ] \mid L\_ID \mid ( \text{Expression} )
-\end{aligned}
+Данная грамматика описывает синтаксис языка в естественном виде. Лексемы (терминалы) выделены жирным шрифтом или спецсимволами. `ε` обозначает пустую строку.
+
+**Нетерминалы:** `Program`, `Declarations`, `Declaration`, `StatementList`, `Statement`, `Assignment`, `IfStmt`, `WhileStmt`, `ReadStmt`, `WriteStmt`, `CompoundStmt`, `Expression`, `SimpleExpr`, `Term`, `Factor`.
+
+**Правила вывода:**
+```text
+Program       -> Declarations StatementList
+Declarations  -> Declaration Declarations | ε
+Declaration   -> int L_ID ; 
+               | int1 L_ID [ L_NUM_INT ] ;
+StatementList -> Statement StatementList | ε
+Statement     -> Assignment 
+               | IfStmt 
+               | WhileStmt 
+               | ReadStmt 
+               | WriteStmt 
+               | CompoundStmt
+Assignment    -> L_ID [ Expression ] := Expression ; 
+               | L_ID := Expression ;
+IfStmt        -> if Expression then Statement else Statement 
+               | if Expression then Statement
+WhileStmt     -> while Expression do Statement
+ReadStmt      -> read L_ID [ Expression ] ; 
+               | read L_ID ;
+WriteStmt     -> write Expression ;
+CompoundStmt  -> begin StatementList end
+Expression    -> SimpleExpr < SimpleExpr 
+               | SimpleExpr > SimpleExpr 
+               | SimpleExpr = SimpleExpr 
+               | SimpleExpr <= SimpleExpr 
+               | SimpleExpr >= SimpleExpr 
+               | SimpleExpr
+SimpleExpr    -> SimpleExpr + Term 
+               | SimpleExpr - Term 
+               | Term
+Term          -> Term * Factor 
+               | Term / Factor 
+               | Factor
+Factor        -> L_ID 
+               | L_ID [ Expression ] 
+               | L_NUM_INT 
+               | L_NUM_REAL 
+               | ( Expression ) 
+               | - Factor
 ```
-$\{ \dots \}$ – ноль или более повторений, $[ \dots ]$ – необязательная часть.
 
 ---
 
-## 3. КС-грамматика в нестрогой нормальной форме Грейбах (НФГ)
-```math
-\begin{aligned}
-\text{Program} &\to \text{int } L\_ID \; ; \text{Program} \mid \text{int1 } L\_ID \; [ L\_NUM\_INT ] \; ; \text{Program} \mid \varepsilon \\
+## 3. КС-грамматика в нестрогой нормальной форме Грейбах
 
-\text{StList} &\to L\_ID \; \text{A'} \; \text{StList} \\
-                    &\mid \text{if } E \text{ then } S \text{ ElsePart} \; \text{StList} \\
-                    &\mid \text{while } E \text{ do } S \; \text{StatementList} \\
-                    &\mid \text{read } L\_ID \; \text{Read'} \; \text{StList} \\
-                    &\mid \text{write } E \; ; \; \text{StList} \\
-                    &\mid \text{begin } \text{StList} \text{ end} \; \text{StList} \\
-                    &\mid \varepsilon \\
+Для приведения к данной форме была устранена левая рекурсия, а также выполнена полная декомпозиция (подстановка) самых левых нетерминалов. В результате **каждое правило вывода строго начинается с терминального символа** (лексемы) или является эпсилон-переходом ($\varepsilon$).
 
-\text{A'} &\to := E \; ; \mid [ E ] := E \; ; \\
-\text{Read'} &\to ; \mid [ E ] \; ; \\
-\text{ElsePart} &\to \text{else } S \mid \varepsilon \\
+**Нетерминалы:** `PROG`, `DECL_LIST`, `STMT_LIST`, `STMT`, `A_PRIME`, `READ_PRIME`, `ELSE_PART`, `EXPR`, `REL_OPT`, `SIMPLE_EXPR`, `EXPR_PRIME`, `TERM`, `TERM_PRIME`, `FACTOR`, `ID_PRIME`.
 
-E &\to L\_NUM\_INT \; E' \\
-  &\mid L\_NUM\_REAL \; E' \\
-  &\mid L\_ID \; \text{Id'} \; E' \\
-  &\mid ( E ) \; E' \\
-  &\mid - E \; E' \\
+**Правила вывода:**
+```text
+PROG        -> int L_ID ; DECL_LIST STMT_LIST
+             | int1 L_ID [ L_NUM_INT ] ; DECL_LIST STMT_LIST
+             | L_ID A_PRIME STMT_LIST
+             | if EXPR then STMT ELSE_PART STMT_LIST
+             | while EXPR do STMT STMT_LIST
+             | read L_ID READ_PRIME STMT_LIST
+             | write EXPR ; STMT_LIST
+             | begin STMT_LIST end STMT_LIST
+             | ε
 
-E' &\to + E \; E' \mid - E \; E' \mid * E \; E' \mid / E \; E' \mid < E \mid > E \mid = E \mid <= E \mid >= E \mid \varepsilon \\
+DECL_LIST   -> int L_ID ; DECL_LIST 
+             | int1 L_ID [ L_NUM_INT ] ; DECL_LIST 
+             | ε
 
-\text{Id'} &\to \varepsilon \mid [ E ]
-\end{aligned}
+STMT_LIST   -> L_ID A_PRIME STMT_LIST
+             | if EXPR then STMT ELSE_PART STMT_LIST
+             | while EXPR do STMT STMT_LIST
+             | read L_ID READ_PRIME STMT_LIST
+             | write EXPR ; STMT_LIST
+             | begin STMT_LIST end STMT_LIST
+             | ε
+
+STMT        -> L_ID A_PRIME 
+             | if EXPR then STMT ELSE_PART 
+             | while EXPR do STMT 
+             | read L_ID READ_PRIME 
+             | write EXPR ; 
+             | begin STMT_LIST end
+
+A_PRIME     -> := EXPR ; 
+             | [ EXPR ] := EXPR ;
+
+READ_PRIME  -> ; 
+             | [ EXPR ] ;
+
+ELSE_PART   -> else STMT 
+             | ε
+
+EXPR        -> L_ID ID_PRIME TERM_PRIME EXPR_PRIME REL_OPT
+             | L_NUM_INT TERM_PRIME EXPR_PRIME REL_OPT
+             | L_NUM_REAL TERM_PRIME EXPR_PRIME REL_OPT
+             | ( EXPR ) TERM_PRIME EXPR_PRIME REL_OPT
+             | - FACTOR TERM_PRIME EXPR_PRIME REL_OPT
+
+REL_OPT     -> < SIMPLE_EXPR 
+             | > SIMPLE_EXPR 
+             | = SIMPLE_EXPR 
+             | <= SIMPLE_EXPR 
+             | >= SIMPLE_EXPR 
+             | ε
+
+SIMPLE_EXPR -> L_ID ID_PRIME TERM_PRIME EXPR_PRIME
+             | L_NUM_INT TERM_PRIME EXPR_PRIME
+             | L_NUM_REAL TERM_PRIME EXPR_PRIME
+             | ( EXPR ) TERM_PRIME EXPR_PRIME
+             | - FACTOR TERM_PRIME EXPR_PRIME
+
+EXPR_PRIME  -> + TERM EXPR_PRIME 
+             | - TERM EXPR_PRIME 
+             | ε
+
+TERM        -> L_ID ID_PRIME TERM_PRIME
+             | L_NUM_INT TERM_PRIME
+             | L_NUM_REAL TERM_PRIME
+             | ( EXPR ) TERM_PRIME
+             | - FACTOR TERM_PRIME
+
+TERM_PRIME  -> * FACTOR TERM_PRIME 
+             | / FACTOR TERM_PRIME 
+             | ε
+
+FACTOR      -> L_ID ID_PRIME 
+             | L_NUM_INT 
+             | L_NUM_REAL 
+             | ( EXPR ) 
+             | - FACTOR
+
+ID_PRIME    -> [ EXPR ] 
+             | ε
 ```
 ---
 
-## 4. LL(1)-анализатор с семантическими действиями
+## 4. Семантические действия для генерации ОПС
 
-### 4.1. Основные определения и обозначения
+### 4.1. Список семантических действий
+*   **①, ②, ③, ④, ⑤** – Программы для генерации меток и переходов (`!f` — переход по лжи, `!` — безусловный переход) для `if` и `while`. 
+*   **v** – Запись в ОПС адреса (имени) переменной.
+*   **k** – Запись в ОПС константы (числа).
+*   **+, -, *, /, =, <, >, <=, >=** – Арифметические операции и операции сравнения.
+*   **NEG** – Унарный минус (инверсия знака).
+*   **i** – Операция индексации массива (вычисление физического адреса).
+*   **:=** – Операция присваивания.
+*   **r, w** – Операции ввода (`read`) и вывода (`write`).
+*   **□** – Пустое действие (переход по грамматике без генерации команд в ОПС).
 
-- **Нетерминалы**: `Program`, `StList`, `A'`, `Read'`, `ElsePart`, `E`, `E'`, `Id'`.
-- **Терминалы**: `int`, `int1`, `L_ID`, `L_NUM_INT`, `L_NUM_REAL`, `if`, `then`, `else`, `while`, `do`, `read`, `write`, `begin`, `end`, `:=`, `;`, `[`, `]`, `+`, `-`, `*`, `/`, `<`, `>`, `=`, `<=`, `>=`, `(`, `)`, `↓` (маркер конца).
-- **LL(1)-анализ** – нисходящий разбор без возвратов: решение о правиле принимается по одному текущему терминалу.
-- **Таблица LL(1)** – строки – нетерминалы, столбцы – терминалы (пустые клетки – ошибка).
-- **Семантические действия** – специальные символы, выполняемые при извлечении из стека. Обозначения:
+### 4.2. Семантические программы (генерация переходов)
+Используют семантический стек для связывания адресов:
 
-| Символ | Значение |
-|--------|----------|
-| `□` | пустое действие |
-| `v` | записать переменную (`L_ID`) |
-| `k` | записать константу (`L_NUM_INT` / `L_NUM_REAL`) |
-| `+`, `-`, `*`, `/`, `:=`, `<`, `>`, `=`, `<=`, `>=` | бинарные операции |
-| `NEG` | унарный минус |
-| `i` | индексация одномерного массива |
-| `r` | операция чтения |
-| `w` | операция вывода |
-| `m1` | выделение памяти для одномерного массива |
-| `①`…`⑤` | семантические программы (генерация меток) |
+*   **Программа ① (Переход по лжи):** Формирует в ОПС пустой элемент и команду `!f`. Заносит текущий адрес этого пустого места в семантический стек. Вызывается сразу после вычисления логического условия.
+*   **Программа ② (Безусловный переход для else):** Формирует в ОПС пустой элемент и команду `!`. Заносит новый адрес в семантический стек. Извлекает из стека адрес, оставленный Программой ①, и записывает туда текущий адрес (начало блока `else`).
+*   **Программа ③ (Завершение if-else):** Извлекает из семантического стека последний занесённый туда адрес и записывает в него текущий счётчик команд ОПС. Это направляет переход на первую команду после завершения всего `if`.
+*   **Программа ④ (Фиксация начала цикла):** Ничего не генерирует в ОПС. Запоминает в семантическом стеке текущий адрес позиции в ОПС. Сюда будет осуществляться возврат для повторной проверки условия.
+*   **Программа ⑤ (Завершение цикла):** Извлекает адрес `!f` (от Программы ①) и адрес начала (от Программы ④). Генерирует в ОПС адрес начала и команду `!`. Затем записывает текущую позицию в пустой элемент, оставленный Программой ①.
+*   
+*   ### 4.3. Матрица LL(1)-синтаксического анализатора с семантическими действиями
 
-**Правило заталкивания в стек**: правая часть правила заталкивается в **обратном порядке** (самый левый символ оказывается на вершине стека).
+Формат ячейки: верхняя строка — правило грамматики, нижняя строка — семантические действия. Каждому символу правила строго соответствует одно семантическое действие. Пустые ячейки означают синтаксическую ошибку.
 
-### 4.2. Таблица LL(1)-анализатора
+| Нетерминал | `ID (v)` | `NUM (k)` | `int/int1` | `if` | `while` | `read` | `write` | `begin` | `(` | `[` | `+ / -` | `* / /` | `< / = / >` | `:=` | `;` | `else` | `λ` (Follow) |
+|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|
+| **PROG** | `DL SL`<br>`□ □` | | `DL SL`<br>`□ □` | `DL SL`<br>`□ □` | `DL SL`<br>`□ □` | `DL SL`<br>`□ □` | `DL SL`<br>`□ □` | `DL SL`<br>`□ □` | | | | | | | | | `λ`<br>`□` |
+| **DL** | `λ`<br>`□` | | `int ID ; DL`<br>`□ v □ □` <br>*(или)*<br> `int1 ID [ NUM ] ; DL`<br>`□ v □ k □ □ □` | `λ`<br>`□` | `λ`<br>`□` | `λ`<br>`□` | `λ`<br>`□` | `λ`<br>`□` | | | | | | | | | `λ`<br>`□` |
+| **SL** | `S SL`<br>`□ □` | | | `S SL`<br>`□ □` | `S SL`<br>`□ □` | `S SL`<br>`□ □` | `S SL`<br>`□ □` | `S SL`<br>`□ □` | | | | | | | | | `λ`<br>`□` |
+| **S** | `ID A'`<br>`v □` | | | `if E then S EP`<br>`□ ① □ ② ③` | `while E do S`<br>`④ ① □ ⑤` | `read ID R'`<br>`□ v □` | `write E ;`<br>`□ □ w` | `begin SL end`<br>`□ □ □` | | | | | | | | | |
+| **A'** | | | | | | | | | | `[ E ] := E ;`<br>`□ □ i □ □ :=` | | | | `:= E ;`<br>`□ □ :=` | | | |
+| **R'** | | | | | | | | | | `[ E ] ;`<br>`□ □ i r` | | | | | `;`<br>`r` | | |
+| **EP** | | | | | | | | | | | | | | | | `else S`<br>`□ □` | `λ`<br>`□` |
+| **E** | `SE RO`<br>`□ □` | `SE RO`<br>`□ □` | | | | | | | `SE RO`<br>`□ □` | | `SE RO`<br>`□ □` | | | | | | |
+| **RO** | | | | | | | | | | | | | `< SE`<br>`□ <` *(и т.д.)*| | | | `λ`<br>`□` |
+| **SE** | `T E'`<br>`□ □` | `T E'`<br>`□ □` | | | | | | | `T E'`<br>`□ □` | | `T E'`<br>`□ □` | | | | | | |
+| **E'** | | | | | | | | | | | `+ T E'`<br>`□ + □` *(и т.д.)*| | | | | | `λ`<br>`□` |
+| **T** | `F T'`<br>`□ □` | `F T'`<br>`□ □` | | | | | | | `F T'`<br>`□ □` | | `F T'`<br>`□ □` | | | | | | |
+| **T'** | | | | | | | | | | | | `* F T'`<br>`□ * □` *(и т.д.)*| | | | | `λ`<br>`□` |
+| **F** | `ID I'`<br>`v □` | `NUM`<br>`k` | | | | | | | `( E )`<br>`□ □ □` | | `- F`<br>`□ NEG`| | | | | | |
+| **I'** | | | | | | | | | | `[ E ]`<br>`□ □ i` | | | | | | | `λ`<br>`□` |
 
-Строки – нетерминалы, столбцы – терминалы (приведены только значимые). В ячейках записана правая часть правила с вкраплёнными семантическими действиями. Пустая клетка – ошибка.
-
-| Нетерминал | `int` | `int1` | `L_ID` | `L_NUM_INT`/`L_NUM_REAL` | `if` | `while` | `read` | `write` | `begin` | `(` | `-` | `+` | `*` | `/` | `[` | `;` | `:=` | `else` | `↓` |
-|------------|-------|--------|--------|--------------------------|------|---------|--------|---------|---------|-----|-----|-----|-----|-----|-----|-----|------|--------|-----|
-| **Program** | `int L_ID ; Program` | `int1 L_ID [ L_NUM_INT ] ; Program` | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | `ε` |
-| **StList** | – | – | `L_ID A' StList` | – | `if E then StList ElsePart StList` | `while E do StList StList` | `read L_ID Read' StList` | `write E ; StList` | `begin StList end StList` | – | – | – | – | – | – | – | – | – | `ε` |
-| **A'** | – | – | – | – | – | – | – | – | – | – | – | – | – | – | `[ E ] := E ;` | – | `:= E ;` | – | – |
-| **Read'** | – | – | – | – | – | – | – | – | – | – | – | – | – | – | `[ E ] ;` | `;` | – | – | – |
-| **ElsePart** | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | – | `else StList` | `ε` |
-| **E** | – | – | `L_ID Id' E'` | `L_NUM_INT E'` / `L_NUM_REAL E'` | – | – | – | – | – | `( E ) E'` | `- E E'` | – | – | – | – | – | – | – | – |
-| **E'** | – | – | – | – | – | – | – | – | – | – | – | `+ E E'` | `* E E'` | `/ E E'` | – | – | – | – | `ε` |
-| **Id'** | – | – | – | – | – | – | – | – | – | – | – | – | – | – | `[ E ]` | – | – | – | `ε` |
-
-**Примечания к таблице:**
-- Для `E'` также есть правила `- E E'`, `< E`, `> E`, `= E`, `<= E`, `>= E` (не показаны в таблице из-за нехватки места). Все они аналогичны: терминал сравнения (`<`, `>`, `=`, `<=`, `>=`) затем `E`. Для краткости в таблице указаны только `+`, `*`, `/`, а остальные должны быть добавлены аналогично.
-- Для `E'` на `↓`, `;`, `]`, `)` – `ε`.
-- Для `Id'` на `ε` – пусто.
-- Для `Program` на `ε` – пусто.
-- Для `ElsePart` на `ε` – пусто.
-- Для `StList` на `↓` – `ε`.
-
-### 4.3. Семантические действия, вкраплённые в правые части
-
-Каждому символу правой части (терминалу, нетерминалу, действию) соответствует выполнение действия при извлечении из стека. Ниже приведены правила с явным указанием семантических действий в том порядке, в котором они должны быть записаны в таблице (после обратного порядка заталкивания нужно будет перевернуть). Для простоты здесь действия показаны в естественном порядке (слева направо), а при заталкивании в стек они будут перевёрнуты вместе с остальными символами.
-
-**Program**
-- `int L_ID ; Program` → действия: `v` (записать переменную для `L_ID`), затем `□` (для `;`? но `;` – терминал, действие не нужно), затем `□` для `Program`. На самом деле нужно сгенерировать операцию выделения памяти для переменной или массива. Для объявлений `int L_ID ;` нужно создать переменную в таблице, но в ОПС для этого нет операции (память выделяется статически). Поэтому здесь семантические действия не требуются, кроме, возможно, записи в таблицу символов. Для упрощения оставим `□`.
-- `int1 L_ID [ L_NUM_INT ] ; Program` → действия: `k` (константа размера), `m1` (выделение памяти для массива), затем `□`.
-
-**StList**
-- `L_ID A' StList` → `v` (переменная), затем `□` (для `A'`), затем `□` для `StList`.
-- `if E then StList ElsePart StList` → `①` `E` `jf ②` `StList` `j ③` `②` `ElsePart` `③` `StList` (как в лекциях).
-- `while E do StList StList` → `④` `E` `jf ⑤` `StList` `j ④` `⑤` `StList`.
-- `read L_ID Read' StList` → `v` (переменная), затем `□` для `Read'`, затем `r`?, нет: `Read'` генерирует либо `;` (без индексации) либо `[ E ] i ;`. Для `read` операция `r` должна быть после того, как адрес переменной (или элемента массива) будет на стеке. Поэтому в `Read'` нужно генерировать `i` при необходимости, а затем `r`. Тогда в правиле `read L_ID Read' StList` после `v` идёт `Read'`, который сам генерирует `i` и `r`. Действие `r` должно быть после `Read'`. Уточним: `Read' → ;` (тогда генерируется только `r`) или `[ E ] ;` (генерируется `E`, затем `i`, затем `r`). В таблице для `Read'` нужно указать действия.
-- `write E ; StList` → `E` `w` `StList`.
-- `begin StList end StList` → `□` `StList` `□` `StList` (никаких действий).
-- `ε` → `□`.
-
-**A'**
-- `:= E ;` → `E` `:=`
-- `[ E ] := E ;` → `E` `i` `E` `:=`
-
-**Read'**
-- `;` → `r`
-- `[ E ] ;` → `E` `i` `r`
-
-**ElsePart**
-- `else StList` → `□` `StList`
-- `ε` → `□`
-
-**E**
-- `L_ID Id' E'` → `v` `Id'` `E'`
-- `L_NUM_INT E'` → `k` `E'`
-- `L_NUM_REAL E'` → `k` `E'`
-- `( E ) E'` → `□` `E` `□` `E'`
-- `- E E'` → `E` `NEG` `E'`
-
-**E'**
-- `+ E E'` → `E` `+` `E'`
-- `- E E'` → `E` `-` `E'`
-- `* E E'` → `E` `*` `E'`
-- `/ E E'` → `E` `/` `E'`
-- `< E` → `E` `<`
-- `> E` → `E` `>`
-- `= E` → `E` `=`
-- `<= E` → `E` `<=`
-- `>= E` → `E` `>=`
-- `ε` → `□`
-
-**Id'**
-- `[ E ]` → `E` `i`
-- `ε` → `□`
+*(Обозначения в таблице сокращены для читаемости: DL = DECL_LIST, SL = STMT_LIST, S = STMT, EP = ELSE_PART, E = EXPR, RO = REL_OPT, SE = SIMPLE_EXPR, T = TERM, F = FACTOR).*
 ---
 
 # 5. Список операций ОПС
