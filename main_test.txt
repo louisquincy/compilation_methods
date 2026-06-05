@@ -1,0 +1,17 @@
+int1 arr [ 5 ] ;
+int n ;
+int tmp ;
+begin
+    n := 0 ;
+    while n < 5 do begin
+        arr [ n ] := n * 10 + 5 ;
+        n := n + 1 ;
+    end
+    
+    n := 0 ;
+    while n < 5 do begin
+        tmp := arr [ n ] ;
+        write tmp ;
+        n := n + 1 ;
+    end
+end

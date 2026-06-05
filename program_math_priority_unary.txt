@@ -1,0 +1,9 @@
+int a ;
+int b ;
+int res ;
+begin
+    read a ;
+    read b ;
+    res := ( a + b ) * 2 - - 5 / 1 ;
+    write res ;
+end

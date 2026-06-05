@@ -1,0 +1,7 @@
+int x ;
+int y ;
+begin
+    y := 5 ;
+    x := ( y + 3 * 2 ;
+    write x ;
+end
